@@ -352,6 +352,33 @@ components:
           items:
             type: string
             example: ch8i4ug6lnn4g9hqv7m0
+        recording_enabled:
+          description: Enables session recording (SSH and VNC) for peers in the selected groups.
+          type: boolean
+          example: false
+        recording_groups:
+          description: Peer group IDs that have session recording enabled.
+          type: array
+          items:
+            type: string
+            example: ch8i4ug6lnn4g9hqv7m0
+        recording_max_sessions:
+          description: Maximum number of recording files to keep per peer. 0 means unlimited.
+          type: integer
+          example: 0
+        recording_max_total_size_mb:
+          description: Maximum total size in MB of recordings per peer. 0 means unlimited.
+          type: integer
+          format: int64
+          example: 0
+        recording_input_enabled:
+          description: Controls whether keyboard input is captured in SSH recordings. Defaults to true.
+          type: boolean
+          example: true
+        recording_encryption_key:
+          description: Base64-encoded public key for encrypting session recordings. When set, recordings are encrypted with a per-session AES-256-GCM key wrapped with this public key.
+          type: string
+          example: ""
         extra:
           $ref: '#/components/schemas/AccountExtraSettings'
         lazy_connection_enabled:
@@ -934,6 +961,14 @@ components:
           description: Indicates whether SSH access this peer is allowed or not
           type: boolean
           example: true
+        server_vnc_allowed:
+          description: Indicates whether the embedded VNC server is enabled on this peer
+          type: boolean
+          example: false
+        disable_vnc_auth:
+          description: Indicates whether VNC JWT authentication is disabled on this peer
+          type: boolean
+          example: false
         disable_client_routes:
           description: Indicates whether client routes are disabled on this peer or not
           type: boolean
@@ -1384,7 +1419,7 @@ components:
         protocol:
           description: Policy rule type of the traffic
           type: string
-          enum: [ "all", "tcp", "udp", "icmp", "netbird-ssh" ]
+          enum: [ "all", "tcp", "udp", "icmp", "netbird-ssh", "netbird-vnc" ]
           example: "tcp"
         ports:
           description: Policy rule affected ports

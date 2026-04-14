@@ -763,6 +763,7 @@ const (
 	PolicyRuleProtocolAll        PolicyRuleProtocol = "all"
 	PolicyRuleProtocolIcmp       PolicyRuleProtocol = "icmp"
 	PolicyRuleProtocolNetbirdSsh PolicyRuleProtocol = "netbird-ssh"
+	PolicyRuleProtocolNetbirdVnc PolicyRuleProtocol = "netbird-vnc"
 	PolicyRuleProtocolTcp        PolicyRuleProtocol = "tcp"
 	PolicyRuleProtocolUdp        PolicyRuleProtocol = "udp"
 )
@@ -775,6 +776,8 @@ func (e PolicyRuleProtocol) Valid() bool {
 	case PolicyRuleProtocolIcmp:
 		return true
 	case PolicyRuleProtocolNetbirdSsh:
+		return true
+	case PolicyRuleProtocolNetbirdVnc:
 		return true
 	case PolicyRuleProtocolTcp:
 		return true
@@ -808,6 +811,7 @@ const (
 	PolicyRuleMinimumProtocolAll        PolicyRuleMinimumProtocol = "all"
 	PolicyRuleMinimumProtocolIcmp       PolicyRuleMinimumProtocol = "icmp"
 	PolicyRuleMinimumProtocolNetbirdSsh PolicyRuleMinimumProtocol = "netbird-ssh"
+	PolicyRuleMinimumProtocolNetbirdVnc PolicyRuleMinimumProtocol = "netbird-vnc"
 	PolicyRuleMinimumProtocolTcp        PolicyRuleMinimumProtocol = "tcp"
 	PolicyRuleMinimumProtocolUdp        PolicyRuleMinimumProtocol = "udp"
 )
@@ -820,6 +824,8 @@ func (e PolicyRuleMinimumProtocol) Valid() bool {
 	case PolicyRuleMinimumProtocolIcmp:
 		return true
 	case PolicyRuleMinimumProtocolNetbirdSsh:
+		return true
+	case PolicyRuleMinimumProtocolNetbirdVnc:
 		return true
 	case PolicyRuleMinimumProtocolTcp:
 		return true
@@ -853,6 +859,7 @@ const (
 	PolicyRuleUpdateProtocolAll        PolicyRuleUpdateProtocol = "all"
 	PolicyRuleUpdateProtocolIcmp       PolicyRuleUpdateProtocol = "icmp"
 	PolicyRuleUpdateProtocolNetbirdSsh PolicyRuleUpdateProtocol = "netbird-ssh"
+	PolicyRuleUpdateProtocolNetbirdVnc PolicyRuleUpdateProtocol = "netbird-vnc"
 	PolicyRuleUpdateProtocolTcp        PolicyRuleUpdateProtocol = "tcp"
 	PolicyRuleUpdateProtocolUdp        PolicyRuleUpdateProtocol = "udp"
 )
@@ -865,6 +872,8 @@ func (e PolicyRuleUpdateProtocol) Valid() bool {
 	case PolicyRuleUpdateProtocolIcmp:
 		return true
 	case PolicyRuleUpdateProtocolNetbirdSsh:
+		return true
+	case PolicyRuleUpdateProtocolNetbirdVnc:
 		return true
 	case PolicyRuleUpdateProtocolTcp:
 		return true
@@ -1497,6 +1506,24 @@ type AccountSettings struct {
 
 	// PeerLoginExpirationEnabled Enables or disables peer login expiration globally. After peer's login has expired the user has to log in (authenticate). Applies only to peers that were added by a user (interactive SSO login).
 	PeerLoginExpirationEnabled bool `json:"peer_login_expiration_enabled"`
+
+	// RecordingEnabled Enables session recording (SSH and VNC) for peers in the selected groups.
+	RecordingEnabled *bool `json:"recording_enabled,omitempty"`
+
+	// RecordingEncryptionKey Base64-encoded public key for encrypting session recordings. When set, recordings are encrypted with a per-session AES-256-GCM key wrapped with this public key.
+	RecordingEncryptionKey *string `json:"recording_encryption_key,omitempty"`
+
+	// RecordingGroups Peer group IDs that have session recording enabled.
+	RecordingGroups *[]string `json:"recording_groups,omitempty"`
+
+	// RecordingInputEnabled Controls whether keyboard input is captured in SSH recordings. Defaults to true.
+	RecordingInputEnabled *bool `json:"recording_input_enabled,omitempty"`
+
+	// RecordingMaxSessions Maximum number of recording files to keep per peer. 0 means unlimited.
+	RecordingMaxSessions *int `json:"recording_max_sessions,omitempty"`
+
+	// RecordingMaxTotalSizeMb Maximum total size in MB of recordings per peer. 0 means unlimited.
+	RecordingMaxTotalSizeMb *int64 `json:"recording_max_total_size_mb,omitempty"`
 
 	// RegularUsersViewBlocked Allows blocking regular users from viewing parts of the system.
 	RegularUsersViewBlocked bool `json:"regular_users_view_blocked"`
@@ -3287,6 +3314,9 @@ type PeerLocalFlags struct {
 	// DisableServerRoutes Indicates whether server routes are disabled on this peer or not
 	DisableServerRoutes *bool `json:"disable_server_routes,omitempty"`
 
+	// DisableVncAuth Indicates whether VNC JWT authentication is disabled on this peer
+	DisableVncAuth *bool `json:"disable_vnc_auth,omitempty"`
+
 	// LazyConnectionEnabled Indicates whether lazy connection is enabled on this peer
 	LazyConnectionEnabled *bool `json:"lazy_connection_enabled,omitempty"`
 
@@ -3298,6 +3328,9 @@ type PeerLocalFlags struct {
 
 	// ServerSshAllowed Indicates whether SSH access this peer is allowed or not
 	ServerSshAllowed *bool `json:"server_ssh_allowed,omitempty"`
+
+	// ServerVncAllowed Indicates whether the embedded VNC server is enabled on this peer
+	ServerVncAllowed *bool `json:"server_vnc_allowed,omitempty"`
 }
 
 // PeerMinimum defines model for PeerMinimum.

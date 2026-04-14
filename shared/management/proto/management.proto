@@ -200,6 +200,8 @@ message Flags {
   bool enableSSHLocalPortForwarding = 13;
   bool enableSSHRemotePortForwarding = 14;
   bool disableSSHAuth = 15;
+  bool disableVNCAuth = 16;
+  bool serverVNCAllowed = 17;
 }
 
 // PeerSystemMeta is machine meta data like OS and version.
@@ -387,6 +389,9 @@ message NetworkMap {
 
   // SSHAuth represents SSH authorization configuration
   SSHAuth sshAuth = 13;
+
+  // VNCAuth represents VNC authorization configuration
+  VNCAuth vncAuth = 14;
 }
 
 message SSHAuth {
@@ -402,6 +407,20 @@ message SSHAuth {
 
 message MachineUserIndexes {
   repeated uint32 indexes = 1;
+}
+
+// VNCAuth represents VNC authorization configuration for a peer.
+message VNCAuth {
+  // UserIDClaim is the JWT claim to be used to get the users ID
+  string UserIDClaim = 1;
+
+  // AuthorizedUsers is a list of hashed user IDs authorized to access this peer via VNC
+  repeated bytes AuthorizedUsers = 2;
+
+  // MachineUsers maps OS user names to their corresponding indexes in the AuthorizedUsers list.
+  // Used in session mode to determine which OS user to create the virtual session as.
+  // The wildcard "*" allows any OS user.
+  map<string, MachineUserIndexes> machine_users = 3;
 }
 
 // RemotePeerConfig represents a configuration of a remote peer.
@@ -433,6 +452,17 @@ message SSHConfig {
   bytes sshPubKey = 2;
 
   JWTConfig jwtConfig = 3;
+
+  // Session recording settings (shared for SSH and VNC)
+  bool enableRecording = 4;
+  int32 recordingMaxSessions = 5;
+  int64 recordingMaxTotalSizeMb = 6;
+  bool recordInputEnabled = 7;
+
+  // Recording encryption: DER-encoded public key for hybrid AES-GCM encryption.
+  // If set, recordings are encrypted with a per-session AES-256 key, which is
+  // itself encrypted with this public key and stored in the recording header.
+  bytes recordingEncryptionKey = 8;
 }
 
 // DeviceAuthorizationFlowRequest empty struct for future expansion

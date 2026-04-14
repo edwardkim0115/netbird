@@ -184,6 +184,25 @@ func (h *handler) updateAccountRequestSettings(req api.PutApiAccountsAccountIdJS
 		PeerExposeGroups:  req.Settings.PeerExposeGroups,
 	}
 
+	if req.Settings.RecordingEnabled != nil {
+		returnSettings.RecordingEnabled = *req.Settings.RecordingEnabled
+	}
+	if req.Settings.RecordingGroups != nil {
+		returnSettings.RecordingGroups = *req.Settings.RecordingGroups
+	}
+	if req.Settings.RecordingMaxSessions != nil {
+		returnSettings.RecordingMaxSessions = int32(*req.Settings.RecordingMaxSessions)
+	}
+	if req.Settings.RecordingMaxTotalSizeMb != nil {
+		returnSettings.RecordingMaxTotalSizeMB = int64(*req.Settings.RecordingMaxTotalSizeMb)
+	}
+	if req.Settings.RecordingInputEnabled != nil {
+		returnSettings.RecordingInputEnabled = req.Settings.RecordingInputEnabled
+	}
+	if req.Settings.RecordingEncryptionKey != nil {
+		returnSettings.RecordingEncryptionKey = *req.Settings.RecordingEncryptionKey
+	}
+
 	if req.Settings.Extra != nil {
 		returnSettings.Extra = &types.ExtraSettings{
 			PeerApprovalEnabled:      req.Settings.Extra.PeerApprovalEnabled,
@@ -348,6 +367,12 @@ func toAccountResponse(accountID string, settings *types.Settings, meta *types.A
 		RoutingPeerDnsResolutionEnabled: &settings.RoutingPeerDNSResolutionEnabled,
 		PeerExposeEnabled:               settings.PeerExposeEnabled,
 		PeerExposeGroups:                settings.PeerExposeGroups,
+		RecordingEnabled:                &settings.RecordingEnabled,
+		RecordingGroups:                 &settings.RecordingGroups,
+		RecordingMaxSessions:            toIntPtr(settings.RecordingMaxSessions),
+		RecordingMaxTotalSizeMb:         &settings.RecordingMaxTotalSizeMB,
+		RecordingInputEnabled:           settings.RecordingInputEnabled,
+		RecordingEncryptionKey:          &settings.RecordingEncryptionKey,
 		LazyConnectionEnabled:           &settings.LazyConnectionEnabled,
 		DnsDomain:                       &settings.DNSDomain,
 		AutoUpdateVersion:               &settings.AutoUpdateVersion,
@@ -385,4 +410,9 @@ func toAccountResponse(accountID string, settings *types.Settings, meta *types.A
 		DomainCategory: meta.DomainCategory,
 		Onboarding:     apiOnboarding,
 	}
+}
+
+func toIntPtr(v int32) *int {
+	i := int(v)
+	return &i
 }

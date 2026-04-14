@@ -52,6 +52,19 @@ type Settings struct {
 	// PeerExposeGroups list of peer group IDs allowed to expose services
 	PeerExposeGroups []string `gorm:"serializer:json"`
 
+	// RecordingEnabled enables session recording for peers in RecordingGroups
+	RecordingEnabled bool
+	// RecordingGroups list of peer group IDs that have session recording enabled
+	RecordingGroups []string `gorm:"serializer:json"`
+	// RecordingMaxSessions limits the number of recording files kept per peer (0 = unlimited)
+	RecordingMaxSessions int32
+	// RecordingMaxTotalSizeMB limits total recording size in MB per peer (0 = unlimited)
+	RecordingMaxTotalSizeMB int64
+	// RecordingInputEnabled controls whether keyboard input is captured (default true)
+	RecordingInputEnabled *bool
+	// RecordingEncryptionKey is a base64-encoded public key for encrypting recordings
+	RecordingEncryptionKey string
+
 	// Extra is a dictionary of Account settings
 	Extra *ExtraSettings `gorm:"embedded;embeddedPrefix:extra_"`
 
@@ -91,6 +104,12 @@ func (s *Settings) Copy() *Settings {
 		RoutingPeerDNSResolutionEnabled: s.RoutingPeerDNSResolutionEnabled,
 		PeerExposeEnabled:               s.PeerExposeEnabled,
 		PeerExposeGroups:                slices.Clone(s.PeerExposeGroups),
+		RecordingEnabled:                s.RecordingEnabled,
+		RecordingGroups:                 slices.Clone(s.RecordingGroups),
+		RecordingMaxSessions:            s.RecordingMaxSessions,
+		RecordingMaxTotalSizeMB:         s.RecordingMaxTotalSizeMB,
+		RecordingInputEnabled:           s.RecordingInputEnabled,
+		RecordingEncryptionKey:          s.RecordingEncryptionKey,
 		LazyConnectionEnabled:           s.LazyConnectionEnabled,
 		DNSDomain:                       s.DNSDomain,
 		NetworkRange:                    s.NetworkRange,

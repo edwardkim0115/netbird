@@ -88,16 +88,23 @@ func toNetbirdConfig(config *nbconfig.Config, turnCredentials *Token, relayToken
 	return nbConfig
 }
 
-func toPeerConfig(peer *nbpeer.Peer, network *types.Network, dnsName string, settings *types.Settings, httpConfig *nbconfig.HttpServerConfig, deviceFlowConfig *nbconfig.DeviceAuthorizationFlow, enableSSH bool) *proto.PeerConfig {
+func toPeerConfig(peer *nbpeer.Peer, network *types.Network, dnsName string, settings *types.Settings, httpConfig *nbconfig.HttpServerConfig, deviceFlowConfig *nbconfig.DeviceAuthorizationFlow, enableSSH bool, peerGroups []string) *proto.PeerConfig {
 	netmask, _ := network.Net.Mask.Size()
 	fqdn := peer.FQDN(dnsName)
 
 	sshConfig := &proto.SSHConfig{
 		SshEnabled: peer.SSHEnabled || enableSSH,
+		JwtConfig:  buildJWTConfig(httpConfig, deviceFlowConfig),
 	}
 
-	if sshConfig.SshEnabled {
-		sshConfig.JwtConfig = buildJWTConfig(httpConfig, deviceFlowConfig)
+	if settings.RecordingEnabled && peerInGroups(peerGroups, settings.RecordingGroups) {
+		sshConfig.EnableRecording = true
+		sshConfig.RecordingMaxSessions = settings.RecordingMaxSessions
+		sshConfig.RecordingMaxTotalSizeMb = settings.RecordingMaxTotalSizeMB
+		sshConfig.RecordInputEnabled = settings.RecordingInputEnabled == nil || *settings.RecordingInputEnabled
+		if settings.RecordingEncryptionKey != "" {
+			sshConfig.RecordingEncryptionKey = []byte(settings.RecordingEncryptionKey)
+		}
 	}
 
 	return &proto.PeerConfig{
@@ -114,13 +121,14 @@ func toPeerConfig(peer *nbpeer.Peer, network *types.Network, dnsName string, set
 }
 
 func ToSyncResponse(ctx context.Context, config *nbconfig.Config, httpConfig *nbconfig.HttpServerConfig, deviceFlowConfig *nbconfig.DeviceAuthorizationFlow, peer *nbpeer.Peer, turnCredentials *Token, relayCredentials *Token, networkMap *types.NetworkMap, dnsName string, checks []*posture.Checks, dnsCache *cache.DNSConfigCache, settings *types.Settings, extraSettings *types.ExtraSettings, peerGroups []string, dnsFwdPort int64) *proto.SyncResponse {
+	peerConfig := toPeerConfig(peer, networkMap.Network, dnsName, settings, httpConfig, deviceFlowConfig, networkMap.EnableSSH, peerGroups)
 	response := &proto.SyncResponse{
-		PeerConfig: toPeerConfig(peer, networkMap.Network, dnsName, settings, httpConfig, deviceFlowConfig, networkMap.EnableSSH),
+		PeerConfig: peerConfig,
 		NetworkMap: &proto.NetworkMap{
 			Serial:     networkMap.Network.CurrentSerial(),
 			Routes:     toProtocolRoutes(networkMap.Routes),
 			DNSConfig:  toProtocolDNSConfig(networkMap.DNSConfig, dnsCache, dnsFwdPort),
-			PeerConfig: toPeerConfig(peer, networkMap.Network, dnsName, settings, httpConfig, deviceFlowConfig, networkMap.EnableSSH),
+			PeerConfig: peerConfig,
 		},
 		Checks: toProtocolChecks(ctx, checks),
 	}
@@ -128,8 +136,6 @@ func ToSyncResponse(ctx context.Context, config *nbconfig.Config, httpConfig *nb
 	nbConfig := toNetbirdConfig(config, turnCredentials, relayCredentials, extraSettings)
 	extendedConfig := integrationsConfig.ExtendNetBirdConfig(peer.ID, peerGroups, nbConfig, extraSettings)
 	response.NetbirdConfig = extendedConfig
-
-	response.NetworkMap.PeerConfig = response.PeerConfig
 
 	remotePeers := make([]*proto.RemotePeerConfig, 0, len(networkMap.Peers)+len(networkMap.OfflinePeers))
 	remotePeers = appendRemotePeerConfig(remotePeers, networkMap.Peers, dnsName)
@@ -156,13 +162,19 @@ func ToSyncResponse(ctx context.Context, config *nbconfig.Config, httpConfig *nb
 		response.NetworkMap.ForwardingRules = forwardingRules
 	}
 
+	userIDClaim := auth.DefaultUserIDClaim
+	if httpConfig != nil && httpConfig.AuthUserIDClaim != "" {
+		userIDClaim = httpConfig.AuthUserIDClaim
+	}
+
 	if networkMap.AuthorizedUsers != nil {
 		hashedUsers, machineUsers := buildAuthorizedUsersProto(ctx, networkMap.AuthorizedUsers)
-		userIDClaim := auth.DefaultUserIDClaim
-		if httpConfig != nil && httpConfig.AuthUserIDClaim != "" {
-			userIDClaim = httpConfig.AuthUserIDClaim
-		}
 		response.NetworkMap.SshAuth = &proto.SSHAuth{AuthorizedUsers: hashedUsers, MachineUsers: machineUsers, UserIDClaim: userIDClaim}
+	}
+
+	if networkMap.VNCAuthorizedUsers != nil {
+		hashedUsers, machineUsers := buildAuthorizedUsersProto(ctx, networkMap.VNCAuthorizedUsers)
+		response.NetworkMap.VncAuth = &proto.VNCAuth{AuthorizedUsers: hashedUsers, MachineUsers: machineUsers, UserIDClaim: userIDClaim}
 	}
 
 	return response
@@ -193,6 +205,17 @@ func buildAuthorizedUsersProto(ctx context.Context, authorizedUsers map[string]m
 	}
 
 	return hashedUsers, machineUsers
+}
+
+func peerInGroups(peerGroups, targetGroups []string) bool {
+	for _, pg := range peerGroups {
+		for _, tg := range targetGroups {
+			if pg == tg {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func appendRemotePeerConfig(dst []*proto.RemotePeerConfig, peers []*nbpeer.Peer, dnsName string) []*proto.RemotePeerConfig {

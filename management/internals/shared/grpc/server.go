@@ -665,6 +665,7 @@ func extractPeerMeta(ctx context.Context, meta *proto.PeerSystemMeta) nbpeer.Pee
 			RosenpassEnabled:      meta.GetFlags().GetRosenpassEnabled(),
 			RosenpassPermissive:   meta.GetFlags().GetRosenpassPermissive(),
 			ServerSSHAllowed:      meta.GetFlags().GetServerSSHAllowed(),
+			ServerVNCAllowed:      meta.GetFlags().GetServerVNCAllowed(),
 			DisableClientRoutes:   meta.GetFlags().GetDisableClientRoutes(),
 			DisableServerRoutes:   meta.GetFlags().GetDisableServerRoutes(),
 			DisableDNS:            meta.GetFlags().GetDisableDNS(),
@@ -672,6 +673,7 @@ func extractPeerMeta(ctx context.Context, meta *proto.PeerSystemMeta) nbpeer.Pee
 			BlockLANAccess:        meta.GetFlags().GetBlockLANAccess(),
 			BlockInbound:          meta.GetFlags().GetBlockInbound(),
 			LazyConnectionEnabled: meta.GetFlags().GetLazyConnectionEnabled(),
+			DisableVNCAuth:        meta.GetFlags().GetDisableVNCAuth(),
 		},
 		Files: files,
 	}
@@ -818,10 +820,16 @@ func (s *Server) prepareLoginResponse(ctx context.Context, peer *nbpeer.Peer, ne
 		return nil, status.Errorf(codes.Internal, "failed getting settings")
 	}
 
+	peerGroupIDs, err := s.accountManager.GetStore().GetPeerGroupIDs(ctx, store.LockingStrengthNone, peer.AccountID, peer.ID)
+	if err != nil {
+		log.WithContext(ctx).Warnf("failed getting peer groups for peer %s: %s", peer.Key, err)
+		return nil, status.Errorf(codes.Internal, "failed getting peer groups")
+	}
+
 	// if peer has reached this point then it has logged in
 	loginResp := &proto.LoginResponse{
 		NetbirdConfig: toNetbirdConfig(s.config, nil, relayToken, nil),
-		PeerConfig:    toPeerConfig(peer, netMap.Network, s.networkMapController.GetDNSDomain(settings), settings, s.config.HttpConfig, s.config.DeviceAuthorizationFlow, netMap.EnableSSH),
+		PeerConfig:    toPeerConfig(peer, netMap.Network, s.networkMapController.GetDNSDomain(settings), settings, s.config.HttpConfig, s.config.DeviceAuthorizationFlow, netMap.EnableSSH, peerGroupIDs),
 		Checks:        toProtocolChecks(ctx, postureChecks),
 	}
 
